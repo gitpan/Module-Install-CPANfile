@@ -1,0 +1,34 @@
+NAME
+    Module::Install::CPANfile - Include cpanfile
+
+SYNOPSIS
+      # cpanfile
+      requires 'Plack', 0.9;
+      on test => sub {
+          requires 'Test::Warn';
+      };
+
+      # Makefile.PL
+      use Module::Install;
+      cpanfile;
+
+DESCRIPTION
+    Module::Install::CPANfile is a plugin for Module::Install to include
+    dependencies from cpanfile.
+
+    Development requirement can only be checked if the developers has
+    Module::Install::AuthorRequires is installed.
+
+AUTHOR
+    Tatsuhiko Miyagawa <miyagawa@bulknews.net>
+
+COPYRIGHT
+    Copyright 2012- Tatsuhiko Miyagawa
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
+SEE ALSO
+    cpanfile Module::CPANfile Module::Install
+
