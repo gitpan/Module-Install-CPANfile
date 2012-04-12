@@ -3,14 +3,14 @@ package Module::Install::CPANfile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Module::CPANfile;
 use base qw(Module::Install::Base);
 
 sub cpanfile {
     my $self = shift;
-    $self->include($_) for qw( Module::CPANfile Module::CPANfile::Environment Module::CPANfile::Result );
+    $self->include("Module::CPANfile");
 
     my $specs = Module::CPANfile->load->prereq_specs;
 
@@ -18,11 +18,22 @@ sub cpanfile {
         while (my($type, $requirement) = each %$requirements) {
             if (my $command = $self->command_for($phase, $type)) {
                 while (my($mod, $ver) = each %$requirement) {
-                    $self->$command($mod, $ver);
+                    $self->$command($mod, $self->_fix_version($ver));
                 }
             }
         }
     }
+}
+
+sub _fix_version {
+    my($self, $ver) = @_;
+
+    return $ver unless $ver;
+
+    $ver =~ /(?:^|>=?)\s*([\d\.\_]+)/
+      and return $1;
+
+    $ver;
 }
 
 sub command_for {
@@ -60,4 +71,4 @@ __END__
 
 =encoding utf-8
 
-#line 105
+#line 116
