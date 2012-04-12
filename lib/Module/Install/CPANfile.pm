@@ -2,7 +2,7 @@ package Module::Install::CPANfile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Module::CPANfile;
 use base qw(Module::Install::Base);
@@ -47,6 +47,10 @@ sub command_for {
         return 'recommends';
     }
 
+    if ($phase eq 'runtime') {
+        return 'requires';
+    }
+
     return "${phase}_requires";
 }
 
@@ -79,7 +83,7 @@ Module::Install::CPANfile is a plugin for Module::Install to include
 dependencies from L<cpanfile>.
 
 Development requirement can only be checked if the developers has
-L<Module::Install::AuthorRequires> is installed.
+installed L<Module::Install::AuthorRequires>.
 
 =head1 AUTHOR
 
