@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Cwd;
 
-our $VERSION = '0.9005';
+our $VERSION = '0.9006';
 
 sub new {
     my($class, $file) = @_;
@@ -25,6 +25,8 @@ sub parse {
     my $file = Cwd::abs_path($self->{file});
     $self->{result} = Module::CPANfile::Environment::parse($file) or die $@;
 }
+
+sub prereqs { shift->prereq }
 
 sub prereq {
     my $self = shift;
@@ -156,6 +158,6 @@ package Module::CPANfile;
 
 __END__
 
-#line 182
+#line 184
 
 

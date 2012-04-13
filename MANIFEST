@@ -3,7 +3,6 @@ Changes
 cpanfile
 inc/Module/CPANfile.pm
 inc/Module/Install.pm
-inc/Module/Install/AuthorRequires.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Can.pm
 inc/Module/Install/CPANfile.pm
@@ -21,4 +20,7 @@ MANIFEST			This list of files
 META.yml
 README
 t/00_compile.t
+xt/01_basic.t
+xt/02_author.t
 xt/pod.t
+xt/Util.pm

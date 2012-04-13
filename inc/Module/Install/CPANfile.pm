@@ -3,7 +3,7 @@ package Module::Install::CPANfile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Module::CPANfile;
 use base qw(Module::Install::Base);
@@ -71,4 +71,4 @@ __END__
 
 =encoding utf-8
 
-#line 116
+#line 154
