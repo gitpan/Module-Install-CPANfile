@@ -3,67 +3,68 @@ package Module::Install::CPANfile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.04';
+our $VERSION = '0.10';
 
 use Module::CPANfile;
 use base qw(Module::Install::Base);
 
+# TODO Maybe we better move the core logic to Module::CPANfile
+sub merge_meta_with_cpanfile {
+    my $self = shift;
+
+    require CPAN::Meta;
+
+    my $prereqs = Module::CPANfile->load->prereqs;
+
+    if ($self->is_admin) {
+        print "Regenerate META.json and META.yml using cpanfile\n";
+        my $meta = CPAN::Meta->load_yaml_string($self->admin->dump_meta);
+        _merge_prereqs($meta, $prereqs)->save('META.yml', { version => '1.4' });
+        _merge_prereqs($meta, $prereqs)->save('META.json', { version => '2' });
+    }
+
+    for my $metafile (grep -e, qw(MYMETA.yml MYMETA.json)) {
+        print "Merging cpanfile prereqs to $metafile\n";
+        my $meta = CPAN::Meta->load_file($metafile);
+        my $meta_version = $metafile =~ /\.yml$/ ? '1.4' : '2';
+        _merge_prereqs($meta, $prereqs)->save($metafile, { version => $meta_version });
+    }
+}
+
+sub _merge_prereqs {
+    my($meta, $prereqs) = @_;
+
+    my $prereqs_hash = $prereqs->with_merged_prereqs($meta->effective_prereqs)->as_string_hash;
+    my $struct = { %{$meta->as_struct}, prereqs => $prereqs_hash };
+    CPAN::Meta->new($struct);
+}
+
 sub cpanfile {
     my $self = shift;
+
     $self->include("Module::CPANfile");
+    $self->configure_requires("CPAN::Meta");
 
-    my $specs = Module::CPANfile->load->prereq_specs;
+    my $write_all = \&::WriteAll;
 
-    while (my($phase, $requirements) = each %$specs) {
-        while (my($type, $requirement) = each %$requirements) {
-            if (my $command = $self->command_for($phase, $type)) {
-                while (my($mod, $ver) = each %$requirement) {
-                    $self->$command($mod, $self->_fix_version($ver));
-                }
+    *main::WriteAll = sub {
+        $write_all->(@_);
+        $self->merge_meta_with_cpanfile;
+    };
+
+    $self->include("Module::CPANfile");
+    $self->configure_requires("CPAN::Meta");
+
+    if ($self->is_admin) {
+        if (eval { require CPAN::Meta::Check; 1 }) {
+            my $prereqs = Module::CPANfile->load->prereqs;
+            for (CPAN::Meta::Check::verify_dependencies($prereqs, [qw/runtime build test develop/], 'requires')) {
+                warn "Warning: $_\n";
             }
-        }
-    }
-}
-
-sub _fix_version {
-    my($self, $ver) = @_;
-
-    return $ver unless $ver;
-
-    $ver =~ /(?:^|>=?)\s*([\d\.\_]+)/
-      and return $1;
-
-    $ver;
-}
-
-sub command_for {
-    my($self, $phase, $type) = @_;
-
-    if ($type eq 'conflicts') {
-        warn 'conflicts is not supported';
-        return;
-    }
-
-    if ($phase eq 'develop') {
-        if ($INC{"Module/Install/AuthorRequires.pm"}) {
-            return 'author_requires';
-        } elsif ($Module::Install::AUTHOR) {
-            warn "develop phase is ignored unless Module::Install::AuthorRequires is installed.\n";
-            return;
         } else {
-            return;
+            warn "CPAN::Meta::Check is not installed. Skipping dependencies check for the author.\n";
         }
     }
-
-    if ($type eq 'recommends' or $type eq 'suggests') {
-        return 'recommends';
-    }
-
-    if ($phase eq 'runtime') {
-        return 'requires';
-    }
-
-    return "${phase}_requires";
 }
 
 1;
@@ -71,4 +72,4 @@ __END__
 
 =encoding utf-8
 
-#line 154
+#line 155

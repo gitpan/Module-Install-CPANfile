@@ -4,18 +4,16 @@ author:
   - 'Tatsuhiko Miyagawa <miyagawa@bulknews.net>'
 build_requires:
   ExtUtils::MakeMaker: 6.59
-  Test::More: 0.88
-  Test::Requires: 0
+  Test::More: 0.90
 configure_requires:
+  CPAN::Meta: 0
   ExtUtils::MakeMaker: 6.59
-distribution_type: module
 dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
+generated_by: 'Module::Install version 1.06, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-module_name: Module::Install::CPANfile
 name: Module-Install-CPANfile
 no_index:
   directory:
@@ -25,12 +23,13 @@ no_index:
 provides:
   Module::Install::CPANfile:
     file: lib/Module/Install/CPANfile.pm
-    version: 0.04
+    version: 0.10
 requires:
   Module::CPANfile: 0.9005
   Module::Install: 0
-  perl: 5.8.1
+  perl: v5.8.1
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/miyagawa/Module-Install-CPANfile.git
-version: 0.04
+version: 0.10
+x_module_name: Module::Install::CPANfile

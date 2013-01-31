@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Cwd;
 
-our $VERSION = '0.9006';
+our $VERSION = '0.9007';
 
 sub new {
     my($class, $file) = @_;
