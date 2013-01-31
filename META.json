@@ -3,7 +3,7 @@
    "author" : [
       "Tatsuhiko Miyagawa <miyagawa@bulknews.net>"
    ],
-   "dynamic_config" : "1",
+   "dynamic_config" : "0",
    "generated_by" : "Module::Install version 1.06, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
@@ -39,7 +39,7 @@
       },
       "runtime" : {
          "requires" : {
-            "Module::CPANfile" : "0.9005",
+            "Module::CPANfile" : "0.9008",
             "Module::Install" : "0",
             "perl" : "v5.8.1"
          }
@@ -53,7 +53,7 @@
    "provides" : {
       "Module::Install::CPANfile" : {
          "file" : "lib/Module/Install/CPANfile.pm",
-         "version" : "0.10"
+         "version" : "0.11"
       }
    },
    "release_status" : "stable",
@@ -62,9 +62,10 @@
          "http://dev.perl.org/licenses/"
       ],
       "repository" : {
+         "type" : "git",
          "url" : "git://github.com/miyagawa/Module-Install-CPANfile.git"
       }
    },
-   "version" : "0.10",
+   "version" : "0.11",
    "x_module_name" : "Module::Install::CPANfile"
 }

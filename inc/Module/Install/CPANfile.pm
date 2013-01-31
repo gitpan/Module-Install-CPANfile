@@ -3,47 +3,40 @@ package Module::Install::CPANfile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Module::CPANfile;
 use base qw(Module::Install::Base);
 
-# TODO Maybe we better move the core logic to Module::CPANfile
 sub merge_meta_with_cpanfile {
     my $self = shift;
 
     require CPAN::Meta;
 
-    my $prereqs = Module::CPANfile->load->prereqs;
+    my $file = Module::CPANfile->load;
 
     if ($self->is_admin) {
+        # force generate META.json
+        CPAN::Meta->load_file('META.yml')->save('META.json');
+
         print "Regenerate META.json and META.yml using cpanfile\n";
-        my $meta = CPAN::Meta->load_yaml_string($self->admin->dump_meta);
-        _merge_prereqs($meta, $prereqs)->save('META.yml', { version => '1.4' });
-        _merge_prereqs($meta, $prereqs)->save('META.json', { version => '2' });
+        $file->merge_meta('META.yml');
+        $file->merge_meta('META.json');
     }
 
     for my $metafile (grep -e, qw(MYMETA.yml MYMETA.json)) {
         print "Merging cpanfile prereqs to $metafile\n";
-        my $meta = CPAN::Meta->load_file($metafile);
-        my $meta_version = $metafile =~ /\.yml$/ ? '1.4' : '2';
-        _merge_prereqs($meta, $prereqs)->save($metafile, { version => $meta_version });
+        $file->merge_meta($metafile);
     }
 }
 
-sub _merge_prereqs {
-    my($meta, $prereqs) = @_;
-
-    my $prereqs_hash = $prereqs->with_merged_prereqs($meta->effective_prereqs)->as_string_hash;
-    my $struct = { %{$meta->as_struct}, prereqs => $prereqs_hash };
-    CPAN::Meta->new($struct);
-}
-
 sub cpanfile {
-    my $self = shift;
+    my($self, %options) = @_;
 
     $self->include("Module::CPANfile");
     $self->configure_requires("CPAN::Meta");
+
+    $self->dynamic_config(0) unless $options{dynamic};
 
     my $write_all = \&::WriteAll;
 
@@ -58,7 +51,8 @@ sub cpanfile {
     if ($self->is_admin) {
         if (eval { require CPAN::Meta::Check; 1 }) {
             my $prereqs = Module::CPANfile->load->prereqs;
-            for (CPAN::Meta::Check::verify_dependencies($prereqs, [qw/runtime build test develop/], 'requires')) {
+            my @err = CPAN::Meta::Check::verify_dependencies($prereqs, [qw/runtime build test develop/], 'requires');
+            for (@err) {
                 warn "Warning: $_\n";
             }
         } else {
@@ -72,4 +66,4 @@ __END__
 
 =encoding utf-8
 
-#line 155
+#line 149

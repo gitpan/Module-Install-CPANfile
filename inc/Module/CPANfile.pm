@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Cwd;
 
-our $VERSION = '0.9007';
+our $VERSION = '0.9008';
 
 sub new {
     my($class, $file) = @_;
@@ -37,6 +37,22 @@ sub prereq {
 sub prereq_specs {
     my $self = shift;
     $self->{result}{spec};
+}
+
+sub merge_meta {
+    my($self, $file, $version) = @_;
+
+    require CPAN::Meta;
+
+    $version ||= $file =~ /\.yml$/ ? '1.4' : '2';
+
+    my $prereq = $self->prereqs;
+
+    my $meta = CPAN::Meta->load_file($file);
+    my $prereqs_hash = $prereq->with_merged_prereqs($meta->effective_prereqs)->as_string_hash;
+    my $struct = { %{$meta->as_struct}, prereqs => $prereqs_hash };
+
+    CPAN::Meta->new($struct)->save($file, { version => $version });
 }
 
 package Module::CPANfile::Environment;
@@ -158,6 +174,6 @@ package Module::CPANfile;
 
 __END__
 
-#line 184
+#line 234
 
 
