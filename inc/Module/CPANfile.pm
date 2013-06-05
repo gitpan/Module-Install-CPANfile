@@ -3,8 +3,11 @@ package Module::CPANfile;
 use strict;
 use warnings;
 use Cwd;
+use Carp ();
+use Module::CPANfile::Environment ();
+use Module::CPANfile::Result;
 
-our $VERSION = '0.9008';
+our $VERSION = '0.9034';
 
 sub new {
     my($class, $file) = @_;
@@ -19,6 +22,13 @@ sub load {
     $self;
 }
 
+sub save {
+    my($self, $path) = @_;
+
+    open my $out, ">", $path or die "$path: $!";
+    print {$out} $self->to_string;
+}
+
 sub parse {
     my $self = shift;
 
@@ -26,7 +36,43 @@ sub parse {
     $self->{result} = Module::CPANfile::Environment::parse($file) or die $@;
 }
 
+sub from_prereqs {
+    my($proto, $prereqs) = @_;
+
+    my $self = $proto->new;
+    $self->{result} = Module::CPANfile::Result->from_prereqs($prereqs);
+
+    $self;
+}
+
+sub features {
+    my $self = shift;
+    map $self->feature($_), keys %{$self->{result}{features}};
+}
+
+sub feature {
+    my($self, $identifier) = @_;
+
+    my $data = $self->{result}{features}{$identifier}
+      or Carp::croak("Unknown feature '$identifier'");
+
+    require CPAN::Meta::Feature;
+    CPAN::Meta::Feature->new($data->{identifier}, {
+        description => $data->{description},
+        prereqs => $data->{spec},
+    });
+}
+
 sub prereqs { shift->prereq }
+
+sub prereqs_with {
+    my($self, @feature_identifiers) = @_;
+
+    my $prereqs = $self->prereqs;
+    my @others = map { $self->feature($_)->prereqs } @feature_identifiers;
+
+    $prereqs->with_merged_prereqs(\@others);
+}
 
 sub prereq {
     my $self = shift;
@@ -55,125 +101,64 @@ sub merge_meta {
     CPAN::Meta->new($struct)->save($file, { version => $version });
 }
 
-package Module::CPANfile::Environment;
-use strict;
-
-my @bindings = qw(
-    on requires recommends suggests conflicts
-    osname perl
-    configure_requires build_requires test_requires author_requires
-);
-
-my $file_id = 1;
-
-sub import {
-    my($class, $result_ref) = @_;
-    my $pkg = caller;
-
-    $$result_ref = Module::CPANfile::Result->new;
-    for my $binding (@bindings) {
-        no strict 'refs';
-        *{"$pkg\::$binding"} = sub { $$result_ref->$binding(@_) };
-    }
+sub _dump {
+    my $str = shift;
+    require Data::Dumper;
+    chomp(my $value = Data::Dumper->new([$str])->Terse(1)->Dump);
+    $value;
 }
 
-sub parse {
-    my $file = shift;
+sub to_string {
+    my($self, $include_empty) = @_;
 
-    my $code = do {
-        open my $fh, "<", $file or die "$file: $!";
-        join '', <$fh>;
-    };
+    my $prereqs = $self->{result}{spec};
 
-    my($res, $err);
+    my $code = '';
+    $code .= $self->_dump_prereqs($self->{result}{spec}, $include_empty);
 
-    {
-        local $@;
-        $res = eval sprintf <<EVAL, $file_id++;
-package Module::CPANfile::Sandbox%d;
-no warnings;
-my \$_result;
-BEGIN { import Module::CPANfile::Environment \\\$_result };
-
-$code;
-
-\$_result;
-EVAL
-        $err = $@;
+    for my $feature (values %{$self->{result}{features}}) {
+        $code .= sprintf "feature %s, %s => sub {\n", _dump($feature->{identifier}), _dump($feature->{description});
+        $code .= $self->_dump_prereqs($feature->{spec}, $include_empty, 4);
+        $code .= "}\n\n";
     }
 
-    if ($err) { die "Parsing $file failed: $err" };
-
-    return $res;
+    $code =~ s/\n+$/\n/s;
+    $code;
 }
 
-package Module::CPANfile::Result;
-use strict;
+sub _dump_prereqs {
+    my($self, $prereqs, $include_empty, $base_indent) = @_;
 
-sub new {
-    bless {
-        phase => 'runtime', # default phase
-        spec  => {},
-    }, shift;
+    my $code = '';
+    for my $phase (qw(runtime configure build test develop)) {
+        my $indent = $phase eq 'runtime' ? '' : '    ';
+        $indent = (' ' x ($base_indent || 0)) . $indent;
+
+        my($phase_code, $requirements);
+        $phase_code .= "on $phase => sub {\n" unless $phase eq 'runtime';
+
+        for my $type (qw(requires recommends suggests conflicts)) {
+            for my $mod (sort keys %{$prereqs->{$phase}{$type}}) {
+                my $ver = $prereqs->{$phase}{$type}{$mod};
+                $phase_code .= $ver eq '0'
+                             ? "${indent}$type '$mod';\n"
+                             : "${indent}$type '$mod', '$ver';\n";
+                $requirements++;
+            }
+        }
+
+        $phase_code .= "\n" unless $requirements;
+        $phase_code .= "};\n" unless $phase eq 'runtime';
+
+        $code .= $phase_code . "\n" if $requirements or $include_empty;
+    }
+
+    $code =~ s/\n+$/\n/s;
+    $code;
 }
-
-sub on {
-    my($self, $phase, $code) = @_;
-    local $self->{phase} = $phase;
-    $code->()
-}
-
-sub osname { die "TODO" }
-sub perl { die "TODO" }
-
-sub requires {
-    my($self, $module, $requirement) = @_;
-    $self->{spec}{$self->{phase}}{requires}{$module} = $requirement || 0;
-}
-
-sub recommends {
-    my($self, $module, $requirement) = @_;
-    $self->{spec}->{$self->{phase}}{recommends}{$module} = $requirement || 0;
-}
-
-sub suggests {
-    my($self, $module, $requirement) = @_;
-    $self->{spec}->{$self->{phase}}{suggests}{$module} = $requirement || 0;
-}
-
-sub conflicts {
-    my($self, $module, $requirement) = @_;
-    $self->{spec}->{$self->{phase}}{conflicts}{$module} = $requirement || 0;
-}
-
-# Module::Install compatible shortcuts
-
-sub configure_requires {
-    my($self, @args) = @_;
-    $self->on(configure => sub { $self->requires(@args) });
-}
-
-sub build_requires {
-    my($self, @args) = @_;
-    $self->on(build => sub { $self->requires(@args) });
-}
-
-sub test_requires {
-    my($self, @args) = @_;
-    $self->on(test => sub { $self->requires(@args) });
-}
-
-sub author_requires {
-    my($self, @args) = @_;
-    $self->on(develop => sub { $self->requires(@args) });
-}
-
-package Module::CPANfile;
 
 1;
 
 __END__
 
-#line 234
-
-
+#line 283

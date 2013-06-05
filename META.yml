@@ -9,7 +9,7 @@ configure_requires:
   CPAN::Meta: 0
   ExtUtils::MakeMaker: 6.59
 dynamic_config: 0
-generated_by: 'Module::Install version 1.06, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Module::Install version 1.06, CPAN::Meta::Converter version 2.131490'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -23,13 +23,13 @@ no_index:
 provides:
   Module::Install::CPANfile:
     file: lib/Module/Install/CPANfile.pm
-    version: 0.11
+    version: 0.12
 requires:
-  Module::CPANfile: 0.9008
+  Module::CPANfile: 0.9034
   Module::Install: 0
   perl: v5.8.1
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/miyagawa/Module-Install-CPANfile.git
-version: 0.11
+version: 0.12
 x_module_name: Module::Install::CPANfile

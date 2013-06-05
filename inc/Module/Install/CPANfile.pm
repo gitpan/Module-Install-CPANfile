@@ -3,7 +3,7 @@ package Module::Install::CPANfile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Module::CPANfile;
 use base qw(Module::Install::Base);
@@ -33,9 +33,6 @@ sub merge_meta_with_cpanfile {
 sub cpanfile {
     my($self, %options) = @_;
 
-    $self->include("Module::CPANfile");
-    $self->configure_requires("CPAN::Meta");
-
     $self->dynamic_config(0) unless $options{dynamic};
 
     my $write_all = \&::WriteAll;
@@ -45,10 +42,10 @@ sub cpanfile {
         $self->merge_meta_with_cpanfile;
     };
 
-    $self->include("Module::CPANfile");
     $self->configure_requires("CPAN::Meta");
 
     if ($self->is_admin) {
+        $self->admin->include_one_dist("Module::CPANfile");
         if (eval { require CPAN::Meta::Check; 1 }) {
             my $prereqs = Module::CPANfile->load->prereqs;
             my @err = CPAN::Meta::Check::verify_dependencies($prereqs, [qw/runtime build test develop/], 'requires');
